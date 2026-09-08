@@ -570,7 +570,7 @@
       var f = doc.files[0];
       if(!f) return "กรุณาแนบไฟล์เอกสารยืนยันตัวตน";
       if(!/\.(jpe?g|png|pdf)$/i.test(f.name)) return "รองรับเฉพาะไฟล์ JPG, PNG และ PDF";
-      if(f.size >= 2*1024*1024) return "ไฟล์ใหญ่เกิน 2 MB กรุณาลดขนาดไฟล์";
+      if(f.size > 2*1024*1024) return "ไฟล์ใหญ่เกิน 2 MB กรุณาลดขนาดไฟล์";
       return null;
     },
     roles: function(){
@@ -583,7 +583,7 @@
       return picked("contacts").length ? null : "เลือกช่องทางติดต่ออย่างน้อย 1 รายการ";
     },
     note: function(){
-      return $("#note").value.length >= 300 ? "ข้อความยาวเกิน 300 ตัวอักษร" : null;
+      return $("#note").value.length > 300 ? "ข้อความยาวเกิน 300 ตัวอักษร" : null;
     },
     terms: function(){
       return $("#terms").checked ? null : "กรุณายอมรับเงื่อนไขก่อนส่งใบสมัคร";
