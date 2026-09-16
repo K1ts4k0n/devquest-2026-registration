@@ -12,7 +12,12 @@ form{position:relative;overflow:hidden;padding:clamp(26px,4vw,48px);border:1px s
 .choice-card:has(input:focus-visible){outline:2px solid var(--violet);outline-offset:2px}
 .tag-grid label:has(input:focus-visible) span{outline:2px solid var(--lime);outline-offset:2px}
 .terms:has(input:focus-visible) .checkmark{outline:2px solid var(--lime);outline-offset:2px}
-.dropzone:has(#portfolio:focus-visible){outline:2px solid var(--violet);outline-offset:2px}
+.upload-field:has(#portfolio:focus-visible) .dropzone{outline:2px solid var(--violet);outline-offset:2px}
+.field.invalid .dropzone{border-color:var(--coral)}
+.terms.invalid .checkmark{border-color:var(--coral)}
+.choice-group.invalid .choice-card{border-color:rgba(255,117,100,.5)}
+.choice-group.invalid .tag-grid span{border-color:rgba(255,117,100,.5)}
+.toast{cursor:pointer}
 .char-count.limit{color:var(--coral)!important;font-weight:500}
 footer{display:flex;flex-direction:column;gap:14px}
 .terms-summary{font-size:10px;line-height:1.6;color:#8a93a0;border-bottom:1px solid var(--line);padding-bottom:12px}

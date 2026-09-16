@@ -16,33 +16,42 @@ const requiredFields = {
     validate: value => {
       const trimmed = value.trim();
       const thai = '\\u0E01-\\u0E2E\\u0E30-\\u0E3A\\u0E40-\\u0E4E';
-      const token = `[A-Za-z${thai}]+(?:['\\-.][A-Za-z${thai}]+)*`;
+      const token = `(?:[A-Za-z${thai}]+(?:['\\-.][A-Za-z${thai}]+)*\\.?|([A-Za-z${thai}]\\.){1,4})`;
       const regex = new RegExp(`^(?=.{4,}$)${token}(?:\\s+${token})+$`);
       return regex.test(trimmed);
     }
   },
   email: {
     message: 'Please enter a valid email address (e.g. name@example.com).',
-    validate: value => /^[A-Za-z0-9._%+-]+@([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/.test(value.trim())
+    validate: value => /^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/.test(value.trim())
   },
   phone: {
     message: 'Please enter a valid 9–10 digit Thai phone number (e.g. 08X-XXX-XXXX or +66...).',
     validate: value => {
-      const cleaned = value.trim().replace(/[\s\-().]/g, '').replace(/^\+660?/, '0');
+      const cleaned = value.trim().replace(/[\s\-().]/g, '').replace(/^(\+?66)0?/, '0');
       return /^(0[689]\d{8}|0[2-57]\d{7})$/.test(cleaned);
     }
   },
   birthDate: {
-    message: 'Applicants must be at least 15 years old (and maximum 100 years).',
+    message: 'Please enter your date of birth.',
     currentMessage: null,
     validate: (value, element) => {
-      if (!value) return false;
+      if (!value) {
+        if (element) requiredFields.birthDate.currentMessage = 'Please enter your date of birth.';
+        return false;
+      }
       const parts = value.split('-').map(Number);
-      if (parts.length !== 3 || parts.some(isNaN)) return false;
+      if (parts.length !== 3 || parts.some(isNaN)) {
+        if (element) requiredFields.birthDate.currentMessage = 'Please enter a valid calendar date.';
+        return false;
+      }
       const [year, month, day] = parts;
       const birth = new Date(year, month - 1, day);
       const now = new Date();
-      if (isNaN(birth.getTime())) return false;
+      if (isNaN(birth.getTime())) {
+        if (element) requiredFields.birthDate.currentMessage = 'Please enter a valid calendar date.';
+        return false;
+      }
 
       // Ensure date is a valid calendar date (prevent Feb 30/31 rollover)
       if (birth.getFullYear() !== year || birth.getMonth() !== month - 1 || birth.getDate() !== day) {
@@ -183,12 +192,21 @@ if (dropzone) {
 
 function validateChoices(name, groupName, message) {
   const valid = document.querySelectorAll(`input[name="${name}"]:checked`).length > 0;
-  document.querySelector(`[data-group="${groupName}"] .group-error`).textContent = valid ? '' : message;
+  const group = document.querySelector(`[data-group="${groupName}"]`);
+  if (group) {
+    group.classList.toggle('invalid', !valid);
+    group.setAttribute('aria-invalid', !valid);
+    group.querySelector('.group-error').textContent = valid ? '' : message;
+  }
   return valid;
 }
 
 function validateTerms() {
-  const valid = document.querySelector('#terms').checked;
+  const termsInput = document.querySelector('#terms');
+  const valid = Boolean(termsInput?.checked);
+  const termsLabel = termsInput?.closest('.terms');
+  termsLabel?.classList.toggle('invalid', !valid);
+  termsInput?.setAttribute('aria-invalid', !valid);
   document.querySelector('.terms-error').textContent = valid ? '' : 'Please accept the event terms and conditions.';
   return valid;
 }
@@ -202,6 +220,11 @@ document.querySelectorAll('input[name="topics"]').forEach(cb => {
 document.querySelector('#terms')?.addEventListener('change', validateTerms);
 document.querySelector('.terms-link')?.addEventListener('click', e => {
   e.stopPropagation();
+});
+
+toast?.addEventListener('click', () => {
+  if (toastTimer) clearTimeout(toastTimer);
+  toast.classList.remove('show');
 });
 
 // Prevent accidental drops on the browser window from leaving the page
@@ -218,20 +241,23 @@ form.addEventListener('submit', event => {
   if (!(fieldsValid && roleValid && topicValid && termsValid)) {
     if (toastTimer) clearTimeout(toastTimer);
     toast.classList.remove('show');
-    const firstInvalidTarget = document.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea, [data-group="role"] input, [data-group="topics"] input, #terms');
-    if (firstInvalidTarget) {
-      firstInvalidTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      firstInvalidTarget.focus();
-    } else {
-      document.querySelector('.invalid, .group-error:not(:empty), .terms-error:not(:empty)')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const firstInvalid = document.querySelector('.field.invalid, [data-group].invalid, .terms.invalid');
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusTarget = firstInvalid.querySelector('input:not([type="file"]), select, textarea, input') || firstInvalid;
+      try { focusTarget.focus(); } catch {}
     }
     return;
   }
   if (toastTimer) clearTimeout(toastTimer);
   toast.classList.add('show');
   form.reset();
+  document.querySelectorAll('.error').forEach(error => error.textContent = '');
+  document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
   document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
-  budgetValue.textContent = '500 THB'; charCount.textContent = '0'; fileLabel.textContent = 'Choose a file or drop it here';
+  budgetValue.textContent = '500 THB';
+  charCount.textContent = '0';
+  fileLabel.textContent = 'Choose a file or drop it here';
   charCount.parentElement?.classList.remove('limit');
   toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
 });
@@ -239,10 +265,14 @@ form.addEventListener('submit', event => {
 form.addEventListener('reset', () => {
   setTimeout(() => {
     document.querySelectorAll('.error').forEach(error => error.textContent = '');
-    document.querySelectorAll('.invalid').forEach(field => field.classList.remove('invalid'));
+    document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
     document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
-    budgetValue.textContent = '500 THB'; charCount.textContent = '0'; fileLabel.textContent = 'Choose a file or drop it here';
+    budgetValue.textContent = '500 THB';
+    charCount.textContent = '0';
+    fileLabel.textContent = 'Choose a file or drop it here';
     charCount.parentElement?.classList.remove('limit');
+    if (toastTimer) clearTimeout(toastTimer);
+    toast.classList.remove('show');
   }, 0);
 });
 
