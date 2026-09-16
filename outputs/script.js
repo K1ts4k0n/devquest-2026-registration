@@ -8,23 +8,62 @@ const comments = document.querySelector('#comments');
 const charCount = document.querySelector('#charCount');
 const cursorGlow = document.querySelector('.cursor-glow');
 
+let toastTimer = null;
+
 const requiredFields = {
-  fullName: { message: 'Please enter your full name.', validate: value => value.trim().length >= 4 },
-  email: { message: 'Please enter a valid email address.', validate: value => /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(value.trim()) },
-  phone: { message: 'Please enter a 9–10 digit phone number.', validate: value => /^0\d{8,9}$/.test(value.replace(/[\s-]/g, '')) },
-  birthDate: {
-    message: 'Applicants must be at least 15 years old.',
+  fullName: {
+    message: 'Please enter your full name (first and last name).',
     validate: value => {
+      const trimmed = value.trim();
+      return /^[A-Za-zก-๙]{2,}(\s+[A-Za-zก-๙]{2,})+$/.test(trimmed);
+    }
+  },
+  email: {
+    message: 'Please enter a valid email address.',
+    validate: value => /^[^\s@]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(value.trim())
+  },
+  phone: {
+    message: 'Please enter a valid 9–10 digit Thai phone number (e.g. 08X-XXX-XXXX or +66...).',
+    validate: value => {
+      const cleaned = value.trim().replace(/[\s\-().]/g, '').replace(/^\+66/, '0');
+      return /^(0[689]\d{8}|0[2-57]\d{7})$/.test(cleaned);
+    }
+  },
+  birthDate: {
+    message: 'Applicants must be at least 15 years old (and maximum 100 years).',
+    currentMessage: null,
+    validate: (value, element) => {
       if (!value) return false;
-      const d = new Date(value);
+      const parts = value.split('-').map(Number);
+      if (parts.length !== 3 || parts.some(isNaN)) return false;
+      const [year, month, day] = parts;
+      const birth = new Date(year, month - 1, day);
       const now = new Date();
-      if (isNaN(d.getTime()) || d > now) return false;
-      let age = now.getFullYear() - d.getFullYear();
-      const m = now.getMonth() - d.getMonth();
-      if (m < 0 || (m === 0 && now.getDate() < d.getDate())) {
+      if (isNaN(birth.getTime())) return false;
+      if (birth > now) {
+        if (element) {
+          requiredFields.birthDate.currentMessage = 'Date of birth cannot be in the future.';
+        }
+        return false;
+      }
+      let age = now.getFullYear() - year;
+      const m = (now.getMonth() + 1) - month;
+      if (m < 0 || (m === 0 && now.getDate() < day)) {
         age--;
       }
-      return age >= 15;
+      if (age < 15) {
+        if (element) {
+          requiredFields.birthDate.currentMessage = 'Applicants must be at least 15 years old.';
+        }
+        return false;
+      }
+      if (age > 100) {
+        if (element) {
+          requiredFields.birthDate.currentMessage = 'Please enter a realistic date of birth (maximum 100 years old).';
+        }
+        return false;
+      }
+      return true;
     }
   },
   experience: { message: 'Please select your experience level.', validate: value => value !== '' },
@@ -36,7 +75,8 @@ const requiredFields = {
       if (!file) return false;
       const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       const validExt = /\.(jpe?g|png|pdf)$/i.test(file.name);
-      return (validTypes.includes(file.type) || validExt) && file.size <= 5 * 1024 * 1024;
+      const typeMatches = validTypes.includes(file.type) || file.type === '';
+      return typeMatches && validExt && file.size > 0 && file.size <= 5 * 1024 * 1024;
     }
   }
 };
@@ -51,8 +91,10 @@ function setError(element, message = '') {
 function validateField(id) {
   const element = document.querySelector(`#${id}`);
   const rule = requiredFields[id];
-  const valid = rule.validate(element.value);
-  setError(element, valid ? '' : rule.message);
+  const valid = rule.validate(element.value, element);
+  const message = valid ? '' : (rule.currentMessage || rule.message);
+  rule.currentMessage = null;
+  setError(element, message);
   return valid;
 }
 
@@ -71,7 +113,7 @@ budget.addEventListener('input', () => { budgetValue.textContent = `${Number(bud
 comments.addEventListener('input', () => { charCount.textContent = comments.value.length; });
 portfolio.addEventListener('change', () => {
   const file = portfolio.files[0];
-  if (file) fileLabel.textContent = file.name;
+  fileLabel.textContent = file ? file.name : 'Choose a file or drop it here';
   validateField('portfolio');
 });
 
@@ -95,7 +137,7 @@ if (dropzone) {
     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       portfolio.files = e.dataTransfer.files;
       const file = portfolio.files[0];
-      if (file) fileLabel.textContent = file.name;
+      fileLabel.textContent = file ? file.name : 'Choose a file or drop it here';
       validateField('portfolio');
     }
   });
@@ -128,13 +170,20 @@ form.addEventListener('submit', event => {
   const topicValid = validateChoices('region', 'region', 'Please choose at least one topic.');
   const termsValid = validateTerms();
   if (!(fieldsValid && roleValid && topicValid && termsValid)) {
-    document.querySelector('.invalid, .group-error:not(:empty), .terms-error:not(:empty)')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const firstInvalidTarget = document.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea, [data-group="role"] input, [data-group="region"] input, #terms');
+    if (firstInvalidTarget) {
+      firstInvalidTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalidTarget.focus();
+    } else {
+      document.querySelector('.invalid, .group-error:not(:empty), .terms-error:not(:empty)')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     return;
   }
+  if (toastTimer) clearTimeout(toastTimer);
   toast.classList.add('show');
   form.reset();
   budgetValue.textContent = '500 THB'; charCount.textContent = '0'; fileLabel.textContent = 'Choose a file or drop it here';
-  setTimeout(() => toast.classList.remove('show'), 5000);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
 });
 
 form.addEventListener('reset', () => {
