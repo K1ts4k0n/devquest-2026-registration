@@ -70,22 +70,22 @@
               <label class="field" for="fullName">
                 <span>Full name <b>*</b></span>
                 <input id="fullName" name="fullName" type="text" placeholder="e.g. Jane Doe" autocomplete="name" />
-                <small class="error"></small>
+                <small class="error" aria-live="polite"></small>
               </label>
               <label class="field" for="email">
                 <span>Email address <b>*</b></span>
                 <input id="email" name="email" type="email" placeholder="name@email.com" autocomplete="email" />
-                <small class="error"></small>
+                <small class="error" aria-live="polite"></small>
               </label>
               <label class="field" for="phone">
                 <span>Phone number <b>*</b></span>
                 <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="08X-XXX-XXXX" autocomplete="tel" />
-                <small class="error"></small>
+                <small class="error" aria-live="polite"></small>
               </label>
               <label class="field" for="birthDate">
                 <span>Date of birth <b>*</b></span>
                 <input id="birthDate" name="birthDate" type="date" min="1926-01-01" max="2011-12-31" />
-                <small class="error"></small>
+                <small class="error" aria-live="polite"></small>
               </label>
             </div>
           </fieldset>
@@ -100,7 +100,7 @@
                   <option>Just getting started</option><option>Built personal projects</option>
                   <option>1–3 years of experience</option><option>More than 3 years of experience</option>
                 </select>
-                <small class="error"></small>
+                <small class="error" aria-live="polite"></small>
               </label>
               <label class="field" for="contactMethod">
                 <span>Preferred contact method <b>*</b></span>
@@ -108,7 +108,7 @@
                   <option value="">Select contact method</option>
                   <option>Phone</option><option>Email</option><option>LINE</option>
                 </select>
-                <small class="error"></small>
+                <small class="error" aria-live="polite"></small>
               </label>
             </div>
 
@@ -121,7 +121,7 @@
                 <label class="choice-card"><input type="radio" name="role" value="Data" /><span class="choice-icon">◫</span><span>Data</span></label>
                 <label class="choice-card"><input type="radio" name="role" value="Content" /><span class="choice-icon">Aa</span><span>Content</span></label>
               </div>
-              <small class="error group-error"></small>
+              <small class="error group-error" aria-live="polite"></small>
             </div>
 
             <div class="choice-group" data-group="topics" role="group" aria-labelledby="topic-title">
@@ -132,7 +132,7 @@
                 <label><input type="checkbox" name="topics" value="Design" /><span>Product Design</span></label>
                 <label><input type="checkbox" name="topics" value="Startup" /><span>Startup & Business</span></label>
               </div>
-              <small class="error group-error"></small>
+              <small class="error group-error" aria-live="polite"></small>
             </div>
           </fieldset>
 
@@ -148,7 +148,7 @@
               <span>Upload your portfolio / student ID <b>*</b></span>
               <span class="dropzone"><span class="upload-icon">↑</span><span><strong id="fileLabel">Choose a file or drop it here</strong><small>JPG, PNG or PDF · Maximum 5 MB</small></span></span>
               <input id="portfolio" name="portfolio" type="file" accept=".jpg,.jpeg,.png,.pdf" />
-              <small class="error"></small>
+              <small class="error" aria-live="polite"></small>
             </label>
             <label class="field" for="comments">
               <span>Anything else you'd like us to know? <span class="optional">(Optional)</span></span>
@@ -158,7 +158,7 @@
           </fieldset>
 
           <label class="terms"><input id="terms" name="terms" type="checkbox" /><span class="checkmark">✓</span><span>I have read and agree to the <a href="#terms-info" class="terms-link">event terms and conditions</a> <b>*</b></span></label>
-          <small class="error terms-error"></small>
+          <small class="error terms-error" aria-live="polite"></small>
 
           <div class="form-actions">
             <button class="btn secondary" id="clearButton" type="reset">Clear form</button>

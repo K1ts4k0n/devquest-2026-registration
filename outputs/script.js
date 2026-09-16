@@ -22,8 +22,8 @@ const requiredFields = {
     }
   },
   email: {
-    message: 'Please enter a valid email address.',
-    validate: value => /^[^\s@]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(value.trim())
+    message: 'Please enter a valid email address (e.g. name@example.com).',
+    validate: value => /^[A-Za-z0-9._%+-]+@([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/.test(value.trim())
   },
   phone: {
     message: 'Please enter a valid 9–10 digit Thai phone number (e.g. 08X-XXX-XXXX or +66...).',
@@ -43,6 +43,15 @@ const requiredFields = {
       const birth = new Date(year, month - 1, day);
       const now = new Date();
       if (isNaN(birth.getTime())) return false;
+
+      // Ensure date is a valid calendar date (prevent Feb 30/31 rollover)
+      if (birth.getFullYear() !== year || birth.getMonth() !== month - 1 || birth.getDate() !== day) {
+        if (element) {
+          requiredFields.birthDate.currentMessage = 'Please enter a valid calendar date.';
+        }
+        return false;
+      }
+
       if (birth > now) {
         if (element) {
           requiredFields.birthDate.currentMessage = 'Date of birth cannot be in the future.';
@@ -105,6 +114,7 @@ function setError(element, message = '') {
   if (!field) return;
   field.classList.toggle('invalid', Boolean(message));
   field.querySelector('.error').textContent = message;
+  element.setAttribute('aria-invalid', Boolean(message));
 }
 
 function validateField(id) {
@@ -129,9 +139,12 @@ Object.keys(requiredFields).forEach(id => {
 });
 
 budget.addEventListener('input', () => { budgetValue.textContent = `${Number(budget.value).toLocaleString('en-US')} THB`; });
-comments.addEventListener('input', () => { charCount.textContent = comments.value.length; });
+comments.addEventListener('input', () => {
+  charCount.textContent = comments.value.length;
+  charCount.parentElement?.classList.toggle('limit', comments.value.length >= 350);
+});
 portfolio.addEventListener('change', () => {
-  const file = portfolio.files[0];
+  const file = portfolio.files?.[0];
   fileLabel.textContent = file ? file.name : 'Choose a file or drop it here';
   validateField('portfolio');
 });
@@ -154,8 +167,14 @@ if (dropzone) {
   });
   dropzone.addEventListener('drop', e => {
     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      portfolio.files = e.dataTransfer.files;
-      const file = portfolio.files[0];
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(e.dataTransfer.files[0]);
+        portfolio.files = dt.files;
+      } catch {
+        portfolio.files = e.dataTransfer.files;
+      }
+      const file = portfolio.files?.[0];
       fileLabel.textContent = file ? file.name : 'Choose a file or drop it here';
       validateField('portfolio');
     }
@@ -197,6 +216,8 @@ form.addEventListener('submit', event => {
   const topicValid = validateChoices('topics', 'topics', 'Please choose at least one topic.');
   const termsValid = validateTerms();
   if (!(fieldsValid && roleValid && topicValid && termsValid)) {
+    if (toastTimer) clearTimeout(toastTimer);
+    toast.classList.remove('show');
     const firstInvalidTarget = document.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea, [data-group="role"] input, [data-group="topics"] input, #terms');
     if (firstInvalidTarget) {
       firstInvalidTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -209,7 +230,9 @@ form.addEventListener('submit', event => {
   if (toastTimer) clearTimeout(toastTimer);
   toast.classList.add('show');
   form.reset();
+  document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
   budgetValue.textContent = '500 THB'; charCount.textContent = '0'; fileLabel.textContent = 'Choose a file or drop it here';
+  charCount.parentElement?.classList.remove('limit');
   toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
 });
 
@@ -217,7 +240,9 @@ form.addEventListener('reset', () => {
   setTimeout(() => {
     document.querySelectorAll('.error').forEach(error => error.textContent = '');
     document.querySelectorAll('.invalid').forEach(field => field.classList.remove('invalid'));
+    document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
     budgetValue.textContent = '500 THB'; charCount.textContent = '0'; fileLabel.textContent = 'Choose a file or drop it here';
+    charCount.parentElement?.classList.remove('limit');
   }, 0);
 });
 
