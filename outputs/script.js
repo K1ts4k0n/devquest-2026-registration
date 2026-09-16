@@ -15,7 +15,10 @@ const requiredFields = {
     message: 'Please enter your full name (first and last name).',
     validate: value => {
       const trimmed = value.trim();
-      return /^[A-Za-zก-๙]{2,}(\s+[A-Za-zก-๙]{2,})+$/.test(trimmed);
+      const thai = '\\u0E01-\\u0E2E\\u0E30-\\u0E3A\\u0E40-\\u0E4E';
+      const token = `[A-Za-z${thai}]+(?:['\\-.][A-Za-z${thai}]+)*`;
+      const regex = new RegExp(`^(?=.{4,}$)${token}(?:\\s+${token})+$`);
+      return regex.test(trimmed);
     }
   },
   email: {
@@ -25,7 +28,7 @@ const requiredFields = {
   phone: {
     message: 'Please enter a valid 9–10 digit Thai phone number (e.g. 08X-XXX-XXXX or +66...).',
     validate: value => {
-      const cleaned = value.trim().replace(/[\s\-().]/g, '').replace(/^\+66/, '0');
+      const cleaned = value.trim().replace(/[\s\-().]/g, '').replace(/^\+660?/, '0');
       return /^(0[689]\d{8}|0[2-57]\d{7})$/.test(cleaned);
     }
   },
@@ -70,13 +73,29 @@ const requiredFields = {
   contactMethod: { message: 'Please select a contact method.', validate: value => value !== '' },
   portfolio: {
     message: 'Please upload your portfolio or student ID (JPG, PNG, PDF up to 5 MB).',
-    validate: () => {
-      const file = portfolio.files[0];
-      if (!file) return false;
+    currentMessage: null,
+    validate: (value, element) => {
+      const file = portfolio.files?.[0];
+      if (!file) {
+        if (element) requiredFields.portfolio.currentMessage = 'Please upload your portfolio or student ID.';
+        return false;
+      }
       const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       const validExt = /\.(jpe?g|png|pdf)$/i.test(file.name);
       const typeMatches = validTypes.includes(file.type) || file.type === '';
-      return typeMatches && validExt && file.size > 0 && file.size <= 5 * 1024 * 1024;
+      if (!typeMatches || !validExt) {
+        if (element) requiredFields.portfolio.currentMessage = 'Invalid file type. Only JPG, PNG, and PDF files are allowed.';
+        return false;
+      }
+      if (file.size <= 0) {
+        if (element) requiredFields.portfolio.currentMessage = 'The uploaded file is empty (0 bytes).';
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        if (element) requiredFields.portfolio.currentMessage = 'File size exceeds 5 MB. Please choose a smaller file.';
+        return false;
+      }
+      return true;
     }
   }
 };
@@ -158,19 +177,27 @@ function validateTerms() {
 document.querySelectorAll('input[name="role"]').forEach(radio => {
   radio.addEventListener('change', () => validateChoices('role', 'role', 'Please select a preferred role.'));
 });
-document.querySelectorAll('input[name="region"]').forEach(cb => {
-  cb.addEventListener('change', () => validateChoices('region', 'region', 'Please choose at least one topic.'));
+document.querySelectorAll('input[name="topics"]').forEach(cb => {
+  cb.addEventListener('change', () => validateChoices('topics', 'topics', 'Please choose at least one topic.'));
 });
 document.querySelector('#terms')?.addEventListener('change', validateTerms);
+document.querySelector('.terms-link')?.addEventListener('click', e => {
+  e.stopPropagation();
+});
+
+// Prevent accidental drops on the browser window from leaving the page
+['dragover', 'drop'].forEach(eventName => {
+  window.addEventListener(eventName, e => e.preventDefault(), false);
+});
 
 form.addEventListener('submit', event => {
   event.preventDefault();
   const fieldsValid = Object.keys(requiredFields).map(validateField).every(Boolean);
   const roleValid = validateChoices('role', 'role', 'Please select a preferred role.');
-  const topicValid = validateChoices('region', 'region', 'Please choose at least one topic.');
+  const topicValid = validateChoices('topics', 'topics', 'Please choose at least one topic.');
   const termsValid = validateTerms();
   if (!(fieldsValid && roleValid && topicValid && termsValid)) {
-    const firstInvalidTarget = document.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea, [data-group="role"] input, [data-group="region"] input, #terms');
+    const firstInvalidTarget = document.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea, [data-group="role"] input, [data-group="topics"] input, #terms');
     if (firstInvalidTarget) {
       firstInvalidTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
       firstInvalidTarget.focus();
@@ -199,3 +226,7 @@ window.addEventListener('pointermove', event => {
   cursorGlow.style.top = `${event.clientY}px`;
   cursorGlow.classList.add('visible');
 }, { passive: true });
+
+document.addEventListener('mouseleave', () => {
+  cursorGlow.classList.remove('visible');
+});

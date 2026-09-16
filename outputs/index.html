@@ -84,7 +84,7 @@
               </label>
               <label class="field" for="birthDate">
                 <span>Date of birth <b>*</b></span>
-                <input id="birthDate" name="birthDate" type="date" />
+                <input id="birthDate" name="birthDate" type="date" min="1926-01-01" max="2011-12-31" />
                 <small class="error"></small>
               </label>
             </div>
@@ -112,8 +112,8 @@
               </label>
             </div>
 
-            <div class="choice-group" data-group="role">
-              <p class="choice-title">Preferred role <b>*</b></p>
+            <div class="choice-group" data-group="role" role="radiogroup" aria-labelledby="role-title">
+              <p class="choice-title" id="role-title">Preferred role <b>*</b></p>
               <div class="role-grid">
                 <label class="choice-card"><input type="radio" name="role" value="Frontend" /><span class="choice-icon">⌘</span><span>Frontend</span></label>
                 <label class="choice-card"><input type="radio" name="role" value="Backend" /><span class="choice-icon">{ }</span><span>Backend</span></label>
@@ -124,13 +124,13 @@
               <small class="error group-error"></small>
             </div>
 
-            <div class="choice-group" data-group="region">
-              <p class="choice-title">Topics you want to explore <b>*</b> <span class="hint">Choose one or more</span></p>
+            <div class="choice-group" data-group="topics" role="group" aria-labelledby="topic-title">
+              <p class="choice-title" id="topic-title">Topics you want to explore <b>*</b> <span class="hint">Choose one or more</span></p>
               <div class="tag-grid">
-                <label><input type="checkbox" name="region" value="AI" /><span>Artificial Intelligence</span></label>
-                <label><input type="checkbox" name="region" value="Web" /><span>Web Development</span></label>
-                <label><input type="checkbox" name="region" value="Design" /><span>Product Design</span></label>
-                <label><input type="checkbox" name="region" value="Startup" /><span>Startup & Business</span></label>
+                <label><input type="checkbox" name="topics" value="AI" /><span>Artificial Intelligence</span></label>
+                <label><input type="checkbox" name="topics" value="Web" /><span>Web Development</span></label>
+                <label><input type="checkbox" name="topics" value="Design" /><span>Product Design</span></label>
+                <label><input type="checkbox" name="topics" value="Startup" /><span>Startup & Business</span></label>
               </div>
               <small class="error group-error"></small>
             </div>
@@ -157,7 +157,7 @@
             </label>
           </fieldset>
 
-          <label class="terms"><input id="terms" name="terms" type="checkbox" /><span class="checkmark">✓</span><span>I have read and agree to the <a href="#terms-info">event terms and conditions</a> <b>*</b></span></label>
+          <label class="terms"><input id="terms" name="terms" type="checkbox" /><span class="checkmark">✓</span><span>I have read and agree to the <a href="#terms-info" class="terms-link">event terms and conditions</a> <b>*</b></span></label>
           <small class="error terms-error"></small>
 
           <div class="form-actions">
